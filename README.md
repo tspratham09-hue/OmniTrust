@@ -27,8 +27,3 @@ Because OmniTrust relies on a real-time mathematical engine, you must run both t
 1. Clone the repository and install the requirements:
    ```bash
    pip install -r requirements.txt
-
-
-
-
-   
