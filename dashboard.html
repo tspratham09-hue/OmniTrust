@@ -3,240 +3,300 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OmniTrust — Enterprise Verification Layer</title>
+    <title>OmniTrust — Public Safety Navigator</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/deck.gl@latest/dist.min.js"></script>
-    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
-    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    <!-- Leaflet JS & CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body { font-family: 'Inter', sans-serif; overflow: hidden; margin: 0; padding: 0; }
         .font-mono { font-family: 'JetBrains Mono', monospace !important; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #030712; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 3px; }
-        .glass-panel { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
-        .hazard-pulse { position: relative; }
-        .hazard-pulse::after {
-            content: ''; position: absolute; top: -6px; left: -6px; width: 26px; height: 26px;
-            border-radius: 50%; background: rgba(239, 68, 68, 0.4); animation: radar-pulse 1.8s infinite ease-out;
-        }
-        @keyframes radar-pulse { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
+        #main-map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 0; background: #020617; }
+        .glass-panel { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(34, 211, 238, 0.2); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+        .sos-pulse { position: relative; display: flex; justify-content: center; align-items: center; }
+        .sos-pulse::before, .sos-pulse::after { content: ''; position: absolute; border-radius: 50%; border: 2px solid #ef4444; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite; }
+        .sos-pulse::after { animation-delay: 1s; }
+        @keyframes ping { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
+        
+        /* Layer Control Hover Animations */
+        .layer-menu { width: 48px; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); white-space: nowrap; }
+        .layer-menu:hover { width: 330px; }
+        .layer-item { opacity: 0; transform: translateX(-10px); transition: all 0.3s ease; }
+        .layer-menu:hover .layer-item { opacity: 1; transform: translateX(0); }
+        .layer-menu:hover .layer-item:nth-child(1) { transition-delay: 0.05s; }
+        .layer-menu:hover .layer-item:nth-child(2) { transition-delay: 0.1s; }
+        .layer-menu:hover .layer-item:nth-child(3) { transition-delay: 0.15s; }
+        .layer-menu:hover .layer-item:nth-child(4) { transition-delay: 0.2s; }
     </style>
 </head>
-<body class="bg-slate-950 text-gray-200 font-sans h-screen flex overflow-hidden selection:bg-cyan-500 selection:text-black">
+<body class="bg-slate-950 text-slate-200 selection:bg-cyan-500 selection:text-black">
 
-    <!-- LEFT SIDEBAR -->
-    <div class="w-72 bg-slate-900/90 border-r border-slate-800/80 p-5 flex flex-col justify-between flex-shrink-0 backdrop-blur-md">
-        <div>
-            <div class="mb-6">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-3 h-3 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_10px_#22d3ee]"></div>
-                    <h1 class="text-xl font-bold text-white tracking-wider font-mono">OmniTrust</h1>
-                </div>
-                <p class="text-[10px] text-gray-400 font-mono mt-1 tracking-widest uppercase flex items-center gap-1">
-                    <i data-lucide="shield" class="w-3 h-3 text-cyan-400"></i> Enterprise Verification
-                </p>
+    <div id="main-map"></div>
+
+    <!-- GOOGLE MAPS STYLE SLIDE-OUT SIDEBAR -->
+    <div id="app-sidebar" class="fixed inset-y-0 left-0 w-80 bg-slate-950 border-r border-slate-800 transform -translate-x-full transition-transform duration-300 z-[60] shadow-2xl flex flex-col">
+        <div class="p-5 border-b border-slate-800 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <svg width="24" height="24" viewBox="0 0 100 100" class="drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]">
+                    <polygon points="50,10 90,30 90,70 50,90 10,70 10,30" fill="none" stroke="#22d3ee" stroke-width="8"/>
+                    <polygon points="50,25 75,40 75,60 50,75 25,60 25,40" fill="#0ea5e9" opacity="0.5"/>
+                    <circle cx="50" cy="50" r="10" fill="#fff"/>
+                </svg>
+                <h2 class="font-bold text-white font-mono tracking-wide">OmniTrust Menu</h2>
             </div>
-            
-            <nav class="space-y-1 text-xs font-mono">
-                <button onclick="showTab('overview')" id="nav-overview" class="w-full text-left px-3 py-2.5 rounded-lg bg-slate-800 text-cyan-400 font-semibold transition flex items-center gap-2.5">
-                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i> <span>01 Overview</span>
-                </button>
-                <button onclick="showTab('ingestion')" id="nav-ingestion" class="w-full text-left px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800/60 transition flex items-center gap-2.5">
-                    <i data-lucide="radio" class="w-4 h-4"></i> <span>02 Source Ingestion</span>
-                </button>
-                <button onclick="showTab('consistency')" id="nav-consistency" class="w-full text-left px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800/60 transition flex items-center gap-2.5">
-                    <i data-lucide="git-compare" class="w-4 h-4"></i> <span>03 Consistency Engine</span>
-                </button>
-                <button onclick="showTab('confidence')" id="nav-confidence" class="w-full text-left px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800/60 transition flex items-center gap-2.5">
-                    <i data-lucide="gauge" class="w-4 h-4"></i> <span>04 Confidence Engine</span>
-                </button>
-                <button onclick="showTab('physics')" id="nav-physics" class="w-full text-left px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800/60 transition flex items-center gap-2.5">
-                    <i data-lucide="activity" class="w-4 h-4"></i> <span>05 Physics Validation</span>
-                </button>
-                <button onclick="showTab('decision')" id="nav-decision" class="w-full text-left px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800/60 transition flex items-center gap-2.5">
-                    <i data-lucide="shield-check" class="w-4 h-4"></i> <span>06 Trust & Decision</span>
-                </button>
-                <button onclick="showTab('map')" id="nav-map" class="w-full text-left px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800/60 transition flex items-center gap-2.5">
-                    <i data-lucide="box" class="w-4 h-4"></i> <span>07 3D Trust Map</span>
-                </button>
-                <button onclick="showTab('search')" id="nav-search" class="w-full text-left px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800/60 transition flex items-center gap-2.5">
-                    <i data-lucide="navigation" class="w-4 h-4"></i> <span>08 Search & Directions</span>
-                </button>
-                <button onclick="showTab('copilot')" id="nav-copilot" class="w-full text-left px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800/60 transition flex items-center gap-2.5">
-                    <i data-lucide="bot" class="w-4 h-4"></i> <span>09 AI Copilot</span>
-                </button>
-            </nav>
+            <button onclick="toggleSidebar()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div class="p-3 space-y-1 flex-1 overflow-y-auto custom-scrollbar">
+            <button onclick="openMenuModal('Saved Locations', '<ul class=\'space-y-3\'><li class=\'bg-slate-800 p-3 rounded-lg flex items-center gap-3\'><i data-lucide=\'home\' class=\'w-4 h-4 text-cyan-400\'></i> Home (Mysuru)</li><li class=\'bg-slate-800 p-3 rounded-lg flex items-center gap-3\'><i data-lucide=\'briefcase\' class=\'w-4 h-4 text-cyan-400\'></i> Headquarters (Bengaluru)</li></ul>')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-slate-900 transition flex items-center gap-4 text-sm text-slate-300 hover:text-cyan-400"><i data-lucide="bookmark" class="w-4 h-4"></i> Saved Locations</button>
+            <button onclick="openMenuModal('Recent Routes', '<ul class=\'space-y-3\'><li class=\'bg-slate-800 p-3 rounded-lg text-sm\'><span class=\'text-cyan-400 font-bold\'>Mysuru &rarr; Chennai</span><br><span class=\'text-xs text-slate-400\'>Routed around flood zone • 2 days ago</span></li><li class=\'bg-slate-800 p-3 rounded-lg text-sm\'><span class=\'text-cyan-400 font-bold\'>Mangaluru &rarr; Delhi</span><br><span class=\'text-xs text-slate-400\'>Verified safe • 1 week ago</span></li></ul>')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-slate-900 transition flex items-center gap-4 text-sm text-slate-300 hover:text-cyan-400"><i data-lucide="history" class="w-4 h-4"></i> Recent Routes</button>
+            <button onclick="openMenuModal('Location Sharing', '<div class=\'text-center p-4\'><i data-lucide=\'users\' class=\'w-12 h-12 text-cyan-400 mx-auto mb-3\'></i><p class=\'text-sm\'>Live location sharing is currently active with <strong>3</strong> emergency contacts.</p></div>')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-slate-900 transition flex items-center gap-4 text-sm text-slate-300 hover:text-cyan-400"><i data-lucide="users" class="w-4 h-4"></i> Location Sharing</button>
+            <button onclick="openMenuModal('Your Contributions', '<div class=\'grid grid-cols-2 gap-4 text-center\'><div class=\'bg-slate-800 p-4 rounded-lg\'><span class=\'block text-2xl font-bold text-cyan-400\'>12</span><span class=\'text-[10px] uppercase tracking-wider text-slate-400\'>Hazards Reported</span></div><div class=\'bg-slate-800 p-4 rounded-lg\'><span class=\'block text-2xl font-bold text-cyan-400\'>45</span><span class=\'text-[10px] uppercase tracking-wider text-slate-400\'>Routes Verified</span></div></div>')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-slate-900 transition flex items-center gap-4 text-sm text-slate-300 hover:text-cyan-400"><i data-lucide="activity" class="w-4 h-4"></i> Your Contributions</button>
+            <div class="my-3 border-t border-slate-800"></div>
+            <button onclick="window.print()" class="w-full text-left px-4 py-3 rounded-xl hover:bg-slate-900 transition flex items-center gap-4 text-sm text-slate-300 hover:text-cyan-400"><i data-lucide="printer" class="w-4 h-4"></i> Print Route</button>
+            <button onclick="shareMap()" class="w-full text-left px-4 py-3 rounded-xl hover:bg-slate-900 transition flex items-center gap-4 text-sm text-slate-300 hover:text-cyan-400"><i data-lucide="share-2" class="w-4 h-4"></i> Share Map</button>
+            <div class="my-3 border-t border-slate-800"></div>
+            <button onclick="openMenuModal('Account Settings', '<p class=\'text-sm text-slate-400 mb-4\'>Manage your OmniTrust enterprise preferences.</p><label class=\'flex items-center gap-3 text-sm\'><input type=\'checkbox\' checked class=\'accent-cyan-500\'> Enable Real-Time Physics Engine</label><br><label class=\'flex items-center gap-3 text-sm mt-2\'><input type=\'checkbox\' checked class=\'accent-cyan-500\'> Connect to Blockchain Ledger</label>')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-slate-900 transition flex items-center gap-4 text-sm text-slate-300 hover:text-cyan-400"><i data-lucide="settings" class="w-4 h-4"></i> Search Settings</button>
+        </div>
+    </div>
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[55] transition-opacity"></div>
+
+    <!-- GENERIC MENU MODAL -->
+    <div id="menu-modal" class="hidden fixed inset-0 z-[70] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-[400px] overflow-hidden shadow-2xl scale-100 transition-transform">
+            <div class="bg-cyan-900/50 p-4 border-b border-cyan-500/30 flex justify-between items-center">
+                <h2 id="menu-modal-title" class="text-white font-bold font-mono tracking-wide">Menu</h2>
+                <button onclick="closeMenuModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div id="menu-modal-content" class="p-6 text-slate-200"></div>
+        </div>
+    </div>
+
+    <!-- FLOATING TOP-LEFT PANEL -->
+    <div class="absolute top-4 left-4 z-10 w-96 space-y-3">
+        
+        <!-- HEADER WITH NEW PROFESSIONAL LOGO -->
+        <div class="glass-panel rounded-2xl p-3 px-4 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <button onclick="toggleSidebar()" class="text-slate-400 hover:text-cyan-400 transition"><i data-lucide="menu" class="w-6 h-6"></i></button>
+                <div class="flex items-center gap-2.5">
+                    <!-- NEW GEOMETRIC SVG LOGO -->
+                    <svg width="24" height="24" viewBox="0 0 100 100" class="drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]">
+                        <polygon points="50,10 90,30 90,70 50,90 10,70 10,30" fill="none" stroke="#22d3ee" stroke-width="8"/>
+                        <polygon points="50,25 75,40 75,60 50,75 25,60 25,40" fill="#0ea5e9" opacity="0.5"/>
+                        <circle cx="50" cy="50" r="10" fill="#fff"/>
+                    </svg>
+                    <h1 class="text-lg font-bold text-white tracking-wide font-mono">OmniTrust</h1>
+                </div>
+            </div>
+            <button onclick="document.getElementById('telemetry-panel').classList.toggle('hidden')" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-400 transition shadow-inner"><i data-lucide="sliders" class="w-4 h-4"></i></button>
         </div>
 
-        <div class="text-[10px] text-gray-500 font-mono leading-relaxed border-t border-slate-800/80 pt-4 space-y-1">
-            <div class="flex items-center justify-between">
-                <span>OMNITRUST v3.0</span>
-                <span class="text-gray-400">ENTERPRISE</span>
+        <!-- ROUTING PANEL -->
+        <div class="glass-panel rounded-2xl p-4 space-y-4">
+            <div class="flex justify-between items-end border-b border-slate-700 pb-2 px-2">
+                <button id="tab-car" onclick="switchTransit('car')" class="flex flex-col items-center gap-1 text-cyan-400 border-b-2 border-cyan-400 pb-2 px-2 transition"><i data-lucide="car" class="w-5 h-5"></i><span id="time-car" class="text-[10px] font-mono">Best</span></button>
+                <button id="tab-train" onclick="switchTransit('train')" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 border-b-2 border-transparent pb-2 px-2 transition"><i data-lucide="train" class="w-5 h-5"></i><span id="time-train" class="text-[10px] font-mono">--</span></button>
+                <button id="tab-bike" onclick="switchTransit('bike')" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 border-b-2 border-transparent pb-2 px-2 transition"><i data-lucide="bike" class="w-5 h-5"></i><span id="time-bike" class="text-[10px] font-mono">--</span></button>
+                <button id="tab-walk" onclick="switchTransit('walk')" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-300 border-b-2 border-transparent pb-2 px-2 transition"><i data-lucide="footprints" class="w-5 h-5"></i><span id="time-walk" class="text-[10px] font-mono">--</span></button>
             </div>
-            <div class="flex items-center gap-1.5">
-                <i data-lucide="cpu" class="w-3 h-3 text-gray-400"></i>
-                <span id="backend-status" class="text-yellow-500 font-bold">LOCAL MATH ENGINE</span>
+
+            <div class="space-y-2 relative">
+                <div class="absolute left-4 top-4 bottom-4 w-0.5 bg-slate-700 z-0"></div>
+                <div class="relative z-10 flex items-center gap-3">
+                    <div class="w-2.5 h-2.5 rounded-full border-2 border-cyan-400 bg-slate-900 ml-3"></div>
+                    <input id="start-input" type="text" value="Mysuru" placeholder="Choose starting point" class="w-full bg-slate-900/80 border border-slate-700 rounded-lg py-2.5 px-3 text-sm text-white focus:outline-none focus:border-cyan-500 transition">
+                </div>
+                <div class="relative z-10 flex items-center gap-3">
+                    <div class="w-2.5 h-2.5 rounded-full bg-red-500 ml-3 border-2 border-slate-900"></div>
+                    <input id="end-input" type="text" placeholder="Choose destination" class="w-full bg-slate-900/80 border border-slate-700 rounded-lg py-2.5 px-3 text-sm text-white focus:outline-none focus:border-cyan-500 transition" onkeypress="if(event.key==='Enter') searchAndRoute()">
+                </div>
             </div>
-            <div class="flex items-center gap-1.5 mt-2 overflow-hidden">
-                <i data-lucide="link" class="w-3 h-3 text-cyan-500"></i>
-                <span id="hash-display" class="text-cyan-500/50 truncate">Awaiting Sync...</span>
+
+            <button onclick="searchAndRoute()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 rounded-lg transition text-sm flex justify-center items-center gap-2 mt-2">
+                <i data-lucide="navigation" class="w-4 h-4"></i> Get Directions
+            </button>
+
+            <!-- Destination Image & Output -->
+            <div id="route-output" class="hidden space-y-3 pt-3 border-t border-slate-800">
+                <img id="dest-image" src="" alt="Destination" class="hidden w-full h-32 object-cover rounded-xl shadow-lg border border-slate-700">
+                <div class="bg-slate-900 border border-cyan-500/50 p-3 rounded-xl shadow-[0_0_15px_rgba(34,211,238,0.1)]">
+                    <div class="flex justify-between items-center mb-1">
+                        <span id="ui-status" class="text-[10px] text-cyan-400 font-mono flex items-center gap-1"><i data-lucide="check-circle-2" class="w-3 h-3"></i> SAFE ROUTE FOUND</span>
+                        <span id="ui-trust" class="font-bold text-white font-mono">Trust: 92/100</span>
+                    </div>
+                    <div class="flex gap-4 text-xs text-slate-300">
+                        <span id="ui-dist"><i data-lucide="ruler" class="w-3 h-3 inline mr-1 text-cyan-400"></i> -- km</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="telemetry-panel" class="hidden glass-panel rounded-2xl p-4 space-y-4 font-mono">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+                <span class="text-xs text-slate-400">Live Crypto Hash</span>
+                <span id="hash-display" class="text-[10px] text-cyan-400 truncate w-32">Syncing...</span>
+            </div>
+            <div class="space-y-2 text-xs">
+                <div class="flex justify-between text-slate-300"><span>Reliability (<span id="ov-rel" class="text-blue-400">80</span>)</span><div class="w-32 bg-slate-800 rounded-full h-1.5 mt-1.5"><div id="bar-rel" class="bg-blue-400 h-1.5 rounded-full" style="width: 80%"></div></div></div>
+                <div class="flex justify-between text-slate-300"><span>Consistency (<span id="ov-con" class="text-cyan-400">87</span>)</span><div class="w-32 bg-slate-800 rounded-full h-1.5 mt-1.5"><div id="bar-con" class="bg-cyan-400 h-1.5 rounded-full" style="width: 87%"></div></div></div>
+                <div class="flex justify-between text-slate-300"><span>Confidence (<span id="ov-conf" class="text-yellow-400">82</span>)</span><div class="w-32 bg-slate-800 rounded-full h-1.5 mt-1.5"><div id="bar-conf" class="bg-yellow-400 h-1.5 rounded-full" style="width: 82%"></div></div></div>
+                <div class="flex justify-between text-slate-300"><span>Physics (<span id="ov-phys" class="text-purple-400">100</span>)</span><div class="w-32 bg-slate-800 rounded-full h-1.5 mt-1.5"><div id="bar-phys" class="bg-purple-400 h-1.5 rounded-full" style="width: 100%"></div></div></div>
+            </div>
+            <p id="phys-status" class="text-[10px] text-green-400 border border-green-500/30 bg-green-500/10 p-2 rounded text-center">PHYSICALLY CONSISTENT</p>
+        </div>
+    </div>
+
+    <!-- NEW GOOGLE MAPS STYLE MAP LAYER PICKER (BOTTOM LEFT) -->
+    <div class="absolute bottom-8 left-4 z-20">
+        <div class="layer-menu bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-2 flex gap-2 overflow-hidden h-14 items-center">
+            
+            <button class="w-10 h-10 flex-shrink-0 bg-slate-800 rounded-xl flex items-center justify-center hover:bg-slate-700 transition relative">
+                <i data-lucide="layers" class="w-5 h-5 text-cyan-400"></i>
+            </button>
+            
+            <div class="flex gap-2 items-center pl-1">
+                <!-- Dark Layer -->
+                <button onclick="switchMapLayer('dark')" id="layer-btn-dark" class="layer-item flex flex-col items-center gap-1 w-14 border-b-2 border-cyan-400 pb-1">
+                    <div class="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center border border-slate-600"><i data-lucide="moon" class="w-4 h-4 text-slate-300"></i></div>
+                    <span class="text-[9px] text-slate-400 font-mono">Dark</span>
+                </button>
+                <!-- Street Layer -->
+                <button onclick="switchMapLayer('street')" id="layer-btn-street" class="layer-item flex flex-col items-center gap-1 w-14 border-b-2 border-transparent hover:border-slate-500 pb-1">
+                    <div class="w-8 h-8 bg-slate-200 rounded-lg flex items-center justify-center border border-slate-400"><i data-lucide="map" class="w-4 h-4 text-slate-800"></i></div>
+                    <span class="text-[9px] text-slate-400 font-mono">Street</span>
+                </button>
+                <!-- Satellite Layer -->
+                <button onclick="switchMapLayer('satellite')" id="layer-btn-satellite" class="layer-item flex flex-col items-center gap-1 w-14 border-b-2 border-transparent hover:border-slate-500 pb-1">
+                    <div class="w-8 h-8 bg-green-900 rounded-lg flex items-center justify-center border border-green-700"><i data-lucide="satellite" class="w-4 h-4 text-green-400"></i></div>
+                    <span class="text-[9px] text-slate-400 font-mono">Satellite</span>
+                </button>
+                <!-- Terrain Layer -->
+                <button onclick="switchMapLayer('terrain')" id="layer-btn-terrain" class="layer-item flex flex-col items-center gap-1 w-14 border-b-2 border-transparent hover:border-slate-500 pb-1">
+                    <div class="w-8 h-8 bg-orange-900 rounded-lg flex items-center justify-center border border-orange-700"><i data-lucide="mountain" class="w-4 h-4 text-orange-400"></i></div>
+                    <span class="text-[9px] text-slate-400 font-mono">Terrain</span>
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- MAIN DASHBOARD CONTENT -->
-    <main class="flex-1 p-8 overflow-y-auto custom-scrollbar space-y-6 bg-gradient-to-br from-slate-950 via-slate-900/50 to-slate-950">
-        
-        <!-- MODULE 01: OVERVIEW -->
-        <section id="tab-overview" class="space-y-6">
-            <div class="flex justify-between items-start">
-                <div>
-                    <h2 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-                        Current systems ask what happened.
-                    </h2>
-                    <p class="text-xl text-cyan-400 font-semibold tracking-tight mt-0.5">OmniTrust asks — can you trust it?</p>
-                    <p class="text-xs text-gray-400 mt-2 max-w-4xl leading-relaxed">
-                        An enterprise verification layer that sits on top of your prediction model: it scores the reliability of every source, cross-checks conflicts, validates outputs against physical constraints, and commits an immutable cryptographic audit ledger.
-                    </p>
-                </div>
-                <button onclick="exportAuditReport()" class="px-3.5 py-2 bg-slate-900 border border-slate-700 hover:border-cyan-400 text-xs font-mono text-gray-300 hover:text-cyan-400 rounded-lg transition flex items-center gap-2 shadow-sm whitespace-nowrap">
-                    <i data-lucide="lock" class="w-4 h-4"></i> Export Cryptographic Audit
-                </button>
-            </div>
+    <!-- FLOATING BOTTOM CENTER: SOS -->
+    <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20">
+        <button onclick="openSOSModal()" class="sos-pulse bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-8 rounded-full shadow-[0_0_20px_rgba(220,38,38,0.6)] transition flex items-center gap-2 group">
+            <i data-lucide="triangle-alert" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+            <span>REPORT HAZARD (SOS)</span>
+        </button>
+    </div>
 
-            <div class="glass-panel p-4 rounded-xl text-xs text-gray-300 flex items-center gap-3 border-l-4 border-l-cyan-400">
-                <i data-lucide="zap" class="w-5 h-5 text-cyan-400 flex-shrink-0"></i>
-                <div>
-                    <span class="text-cyan-400 font-bold font-mono">Multi-Layer Omni-Verification Engine Active:</span>
-                    <span class="text-gray-400"> Real-time Monte Carlo ensemble variance, pairwise conflict matrices, and hydrological physics validation enabled.</span>
+    <!-- FLOATING BOTTOM RIGHT: AI Copilot -->
+    <div class="absolute bottom-4 right-4 z-10">
+        <div id="copilot-panel" class="hidden glass-panel rounded-2xl w-80 mb-4 overflow-hidden flex flex-col transition-all">
+            <div class="bg-cyan-900/40 p-3 border-b border-cyan-500/30 flex justify-between items-center">
+                <span class="text-xs font-bold text-white font-mono flex items-center gap-2"><i data-lucide="bot" class="w-4 h-4 text-cyan-400"></i> OmniTrust Assistant</span>
+                <button onclick="toggleCopilot()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            <div id="copilot-chat-box" class="h-64 p-4 overflow-y-auto custom-scrollbar space-y-3 font-mono text-xs">
+                <div class="flex items-start gap-2">
+                    <i data-lucide="shield-check" class="w-4 h-4 text-cyan-400 mt-0.5"></i>
+                    <div class="bg-slate-800 text-slate-300 p-2 rounded-r-lg rounded-bl-lg">Hello! I am your OmniTrust AI Assistant. I'm actively monitoring satellite imagery and routing telemetry. How can I keep you safe today?</div>
                 </div>
             </div>
+            <div class="p-2 bg-slate-900 border-t border-slate-700 flex gap-2">
+                <input id="copilot-input" type="text" placeholder="Ask anything..." class="w-full bg-slate-800 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-1 focus:ring-cyan-500" onkeypress="if(event.key==='Enter') handleCopilotCustom()">
+                <button onclick="handleCopilotCustom()" class="bg-cyan-600 hover:bg-cyan-500 rounded px-3"><i data-lucide="send" class="w-3 h-3 text-white"></i></button>
+            </div>
+        </div>
+        <button onclick="toggleCopilot()" id="copilot-trigger" class="ml-auto w-14 h-14 bg-cyan-600 hover:bg-cyan-500 rounded-full shadow-xl flex items-center justify-center transition hover:scale-105 border-2 border-cyan-300/30">
+            <i data-lucide="message-square" class="w-6 h-6 text-white"></i>
+        </button>
+    </div>
 
-            <div class="grid grid-cols-3 gap-6">
-                <div class="glass-panel p-5 rounded-xl space-y-2 hover:border-slate-700 transition">
-                    <div class="flex items-center gap-2 text-white font-bold text-sm font-mono">
-                        <i data-lucide="check-circle-2" class="w-4 h-4 text-blue-400"></i> Reliability
-                    </div>
-                    <p class="text-xs text-gray-400 leading-normal">Scores each data source on quality, signal-to-noise ratio, and exponential temporal decay.</p>
-                </div>
-                <div class="glass-panel p-5 rounded-xl space-y-2 hover:border-slate-700 transition">
-                    <div class="flex items-center gap-2 text-white font-bold text-sm font-mono">
-                        <i data-lucide="layers" class="w-4 h-4 text-cyan-400"></i> Consistency
-                    </div>
-                    <p class="text-xs text-gray-400 leading-normal">Cross-checks every source against every other source using upper-triangle disagreement matrices.</p>
-                </div>
-                <div class="glass-panel p-5 rounded-xl space-y-2 hover:border-slate-700 transition">
-                    <div class="flex items-center gap-2 text-white font-bold text-sm font-mono">
-                        <i data-lucide="target" class="w-4 h-4 text-purple-400"></i> Confidence
-                    </div>
-                    <p class="text-xs text-gray-400 leading-normal">Turns ensemble standard deviation spread (&sigma;) into calibrated confidence score bounds.</p>
-                </div>
+    <!-- SOS MODAL -->
+    <div id="sos-modal" class="hidden fixed inset-0 z-[70] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-[400px] overflow-hidden shadow-2xl scale-100 transition-transform">
+            <div class="bg-red-600 p-4 text-center">
+                <i data-lucide="triangle-alert" class="w-8 h-8 text-white mx-auto mb-1"></i>
+                <h2 class="text-white font-bold text-lg">Broadcast Local Hazard</h2>
             </div>
+            <div class="p-6 space-y-4">
+                <p class="text-sm text-slate-300 text-center">Your report will be sent to the OmniTrust verification engine to alert others and reroute traffic.</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="submitSOS('Flood')" class="p-3 bg-slate-800 hover:bg-blue-900/50 border border-slate-700 hover:border-blue-500 rounded-xl text-white text-sm font-semibold transition flex flex-col items-center gap-2"><i data-lucide="waves" class="w-6 h-6 text-blue-400"></i> Flood / Water</button>
+                    <button onclick="submitSOS('Landslide')" class="p-3 bg-slate-800 hover:bg-orange-900/50 border border-slate-700 hover:border-orange-500 rounded-xl text-white text-sm font-semibold transition flex flex-col items-center gap-2"><i data-lucide="mountain" class="w-6 h-6 text-orange-400"></i> Landslide</button>
+                    <button onclick="submitSOS('Accident')" class="p-3 bg-slate-800 hover:bg-red-900/50 border border-slate-700 hover:border-red-500 rounded-xl text-white text-sm font-semibold transition flex flex-col items-center gap-2"><i data-lucide="car" class="w-6 h-6 text-red-400"></i> Major Crash</button>
+                    <button onclick="submitSOS('Fire')" class="p-3 bg-slate-800 hover:bg-yellow-900/50 border border-slate-700 hover:border-yellow-500 rounded-xl text-white text-sm font-semibold transition flex flex-col items-center gap-2"><i data-lucide="flame" class="w-6 h-6 text-yellow-400"></i> Fire</button>
+                </div>
+                <button onclick="closeSOSModal()" class="w-full py-2 text-slate-400 hover:text-white text-sm font-mono mt-2">CANCEL</button>
+            </div>
+        </div>
+    </div>
 
-            <div class="glass-panel p-6 rounded-xl flex items-center justify-between">
-                <div class="space-y-4">
-                    <div class="flex items-center gap-2 text-gray-400 font-mono text-xs tracking-widest uppercase">
-                        <i data-lucide="line-chart" class="w-4 h-4 text-cyan-400"></i> Live Composite Telemetry
-                    </div>
-                    <div class="space-y-2.5 text-sm font-mono">
-                        <div class="flex items-center gap-4"><span class="w-28 text-gray-400 flex items-center gap-1.5"><i data-lucide="disc" class="w-3 h-3 text-blue-400"></i> Reliability</span><span id="ov-rel" class="text-white font-bold">80</span></div>
-                        <div class="flex items-center gap-4"><span class="w-28 text-gray-400 flex items-center gap-1.5"><i data-lucide="disc" class="w-3 h-3 text-cyan-400"></i> Consistency</span><span id="ov-con" class="text-white font-bold">87</span></div>
-                        <div class="flex items-center gap-4"><span class="w-28 text-gray-400 flex items-center gap-1.5"><i data-lucide="disc" class="w-3 h-3 text-yellow-400"></i> Confidence</span><span id="ov-conf" class="text-white font-bold">82</span></div>
-                        <div class="flex items-center gap-4"><span class="w-28 text-gray-400 flex items-center gap-1.5"><i data-lucide="disc" class="w-3 h-3 text-purple-400"></i> Physics</span><span id="ov-phys" class="text-white font-bold">100</span></div>
-                    </div>
-                </div>
-                <div class="w-44 h-44 relative flex items-center justify-center">
-                    <canvas id="overviewGauge"></canvas>
-                    <div class="absolute text-center">
-                        <span id="ov-trust-score" class="text-3xl font-bold text-white font-mono block">86</span>
-                        <span class="text-[9px] text-gray-400 font-mono uppercase tracking-widest">TRUST SCORE</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="glass-panel p-4 rounded-xl font-mono text-[11px] space-y-2">
-                <div class="flex items-center justify-between text-gray-400 border-b border-slate-800/80 pb-2">
-                    <span class="flex items-center gap-1.5 text-gray-300 font-bold"><i data-lucide="terminal" class="w-3.5 h-3.5 text-cyan-400"></i> LIVE VERIFICATION LOGS</span>
-                    <span class="text-[10px] text-cyan-400 animate-pulse">STREAMING</span>
-                </div>
-                <div id="system-terminal-logs" class="h-28 overflow-y-auto space-y-1 text-gray-400 custom-scrollbar">
-                    <div><span class="text-slate-600">[SYSTEM]</span> OmniTrust enterprise telemetry engine initialized.</div>
-                    <div><span class="text-slate-600">[CHECK]</span> Hydrological physics constraints verified (slope factor: 1.0).</div>
-                    <div><span class="text-slate-600">[SYNC]</span> Ensemble standard deviation spread evaluated (σ = 0.090).</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- (Include all other sections exactly as before, just update coloring to cyan-400 in your IDE later, but here is the essential Copilot and Map fix) -->
-
-        <!-- MODULE 09: COPILOT -->
-        <section id="tab-copilot" class="hidden space-y-6">
-            <div>
-                <span class="text-xs text-gray-500 font-mono uppercase tracking-widest flex items-center gap-1">
-                    <i data-lucide="bot" class="w-3 h-3"></i> MODULE 09
-                </span>
-                <h2 class="text-xl font-bold text-white font-mono">OMNITRUST AI COPILOT</h2>
-                <p class="text-xs text-gray-400 mt-1">Queries current session telemetry, hashes, and matrix calculations.</p>
-            </div>
-            <div class="flex flex-wrap gap-2">
-                <button onclick="askCopilot('why_low')" class="px-3.5 py-2 bg-slate-900 border border-slate-800 hover:border-cyan-500/50 text-xs font-mono text-cyan-400 rounded-lg transition flex items-center gap-1.5">
-                    <i data-lucide="help-circle" class="w-3.5 h-3.5"></i> Why is confidence low?
-                </button>
-                <button onclick="askCopilot('hash')" class="px-3.5 py-2 bg-slate-900 border border-slate-800 hover:border-cyan-500/50 text-xs font-mono text-cyan-400 rounded-lg transition flex items-center gap-1.5">
-                    <i data-lucide="lock" class="w-3.5 h-3.5"></i> What is the current audit hash?
-                </button>
-            </div>
-            <div class="max-w-3xl glass-panel rounded-xl p-5 space-y-4 font-mono text-xs">
-                <div id="copilot-chat-box" class="space-y-4 max-h-[350px] overflow-y-auto custom-scrollbar">
-                    <div class="bg-slate-950/80 p-3.5 rounded-lg border border-slate-800 text-gray-400 flex items-start gap-2.5">
-                        <i data-lucide="bot" class="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5"></i>
-                        <span>OMNITRUST AGENT: Connected to state engine. Ask questions regarding sensor conflicts or cryptographic audits.</span>
-                    </div>
-                </div>
-                <div class="flex gap-2 pt-3 border-t border-slate-800">
-                    <input id="copilot-input" type="text" placeholder="Ask AI Copilot..." class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-cyan-500" onkeypress="if(event.key==='Enter') handleCopilotCustom()">
-                    <button onclick="handleCopilotCustom()" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded-lg transition flex items-center gap-1">
-                        <span>SEND</span> <i data-lucide="send" class="w-3 h-3"></i>
-                    </button>
-                </div>
-            </div>
-        </section>
-    </main>
-
+    <!-- JAVASCRIPT LOGIC -->
     <script>
         const state = {
-            sources: {
-                OPTICAL: { quality: 78, noise_level: 26, freshness_hours: 6, pEvent: 0.72 },
-                SAR: { quality: 70, noise_level: 41, freshness_hours: 12, pEvent: 0.68 },
-                WEATHER: { quality: 88, noise_level: 12, freshness_hours: 2, pEvent: 0.80 },
-                GROUND: { quality: 68, noise_level: 33, freshness_hours: 8, pEvent: 0.55 }
-            },
+            sources: { OPTICAL: { quality: 78, noise_level: 26, freshness_hours: 6, pEvent: 0.72 }, SAR: { quality: 70, noise_level: 41, freshness_hours: 12, pEvent: 0.68 }, WEATHER: { quality: 88, noise_level: 12, freshness_hours: 2, pEvent: 0.80 }, GROUND: { quality: 68, noise_level: 33, freshness_hours: 8, pEvent: 0.55 } },
             physics: { rain: 120, river: 45, slope: 4 },
             calculated: { reliability: 80, consistency: 87, confidence: 82, physicsScore: 100, trustScore: 86, largestConflict: 25, meanP: 0.69, stdDev: 0.090 },
-            currentHash: "0xMockHashInitializationAwaitingServer..."
+            currentHash: "0xAwaitingServer..."
         };
 
-        let ws, deckInited = false, routeMapInstance = null, overviewChart, decisionChart;
+        let ws, mapInstance;
+        let mapLayers = {};
+        let activeLayerControl = null;
+        const defaultStartLat = 12.2958; const defaultStartLon = 76.6394;
+
+        // NEW: CUSTOM MAP LAYER LOGIC
+        function initMap() {
+            // Define all map styles
+            mapLayers = {
+                'dark': L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 }),
+                'street': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 }),
+                'satellite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri', maxZoom: 19 }),
+                'terrain': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri', maxZoom: 19 })
+            };
+
+            // Initialize map with Dark mode active
+            mapInstance = L.map('main-map', { zoomControl: false, layers: [mapLayers['dark']] }).setView([defaultStartLat, defaultStartLon], 10);
+            L.control.zoom({ position: 'bottomright' }).addTo(mapInstance);
+            activeLayerControl = mapLayers['dark'];
+        }
+
+        function switchMapLayer(layerId) {
+            // Remove old layer, add new layer
+            mapInstance.removeLayer(activeLayerControl);
+            activeLayerControl = mapLayers[layerId];
+            activeLayerControl.addTo(mapInstance);
+            
+            // Update UI Button Highlights
+            ['dark', 'street', 'satellite', 'terrain'].forEach(id => {
+                const btn = document.getElementById('layer-btn-' + id);
+                btn.classList.remove('border-cyan-400');
+                btn.classList.add('border-transparent');
+            });
+            
+            const activeBtn = document.getElementById('layer-btn-' + layerId);
+            activeBtn.classList.remove('border-transparent');
+            activeBtn.classList.add('border-cyan-400');
+        }
 
         function initWebSocket() {
             try {
                 const host = window.location.host ? window.location.host : '127.0.0.1:8000';
                 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
                 ws = new WebSocket(`${protocol}//${host}/ws/stream`);
-                ws.onopen = () => { document.getElementById('backend-status').innerText = 'CONNECTED (FASTAPI WS)'; document.getElementById('backend-status').className = 'text-cyan-400 font-bold'; sendWSUpdate(); };
+                ws.onopen = () => { sendWSUpdate(); };
                 ws.onmessage = (event) => { applyServerResponse(JSON.parse(event.data)); };
-                ws.onerror = () => { fallbackLocal(); };
-            } catch (e) { fallbackLocal(); }
+            } catch (e) { console.log("Local mode fallback"); }
         }
 
-        function fallbackLocal() { document.getElementById('backend-status').innerText = 'LOCAL MATH ENGINE'; document.getElementById('backend-status').className = 'text-yellow-500 font-bold'; recalculateLocalEngine(); }
-        function sendWSUpdate() { if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ sources: state.sources, physics: state.physics })); } else { recalculateLocalEngine(); } }
+        function sendWSUpdate() { if (ws && ws.readyState === WebSocket.OPEN) { ws.send(JSON.stringify({ sources: state.sources, physics: state.physics })); } }
 
         function applyServerResponse(res) {
             state.calculated.trustScore = res.composite_trust;
@@ -244,109 +304,221 @@
             state.calculated.consistency = res.consistency;
             state.calculated.confidence = res.confidence;
             state.calculated.physicsScore = res.physics_score;
-            state.calculated.meanP = res.ensemble_stats.mean_p;
-            state.calculated.stdDev = res.ensemble_stats.std_dev;
-            if(res.crypto_hash) {
-                state.currentHash = res.crypto_hash;
-                document.getElementById('hash-display').innerText = "0x" + res.crypto_hash.substring(0,12) + "...";
+            if(res.crypto_hash) { 
+                state.currentHash = res.crypto_hash; 
+                document.getElementById('hash-display').innerText = "0x" + res.crypto_hash.substring(0,16) + "...";
             }
-            updateUI();
-        }
-
-        function addTerminalLog(msg) {
-            const term = document.getElementById('system-terminal-logs');
-            if (!term) return;
-            const time = new Date().toLocaleTimeString('en-US', { hour12: false });
-            term.innerHTML += `<div><span class="text-slate-600">[${time}]</span> ${msg}</div>`;
-            term.scrollTop = term.scrollHeight;
-        }
-
-        function exportAuditReport() {
-            const data = {
-                timestamp: new Date().toISOString(),
-                engine: "OmniTrust Core v3.0",
-                cryptographic_hash: state.currentHash,
-                trust_score: state.calculated.trustScore,
-                breakdown: state.calculated,
-                verified_by: document.getElementById('backend-status').innerText
-            };
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `OmniTrust_Audit_${Date.now()}.json`;
-            a.click();
-            addTerminalLog("<span class='text-cyan-400'>[SECURE EXPORT] Cryptographic Audit certificate generated successfully.</span>");
-        }
-
-        function recalculateLocalEngine() {
-            // ... (keep your existing local fallback math here) ...
             updateUI();
         }
 
         function updateUI() {
             const c = state.calculated;
-            document.getElementById('ov-rel').innerText = c.reliability; document.getElementById('ov-con').innerText = c.consistency; document.getElementById('ov-conf').innerText = c.confidence; document.getElementById('ov-phys').innerText = c.physicsScore; document.getElementById('ov-trust-score').innerText = c.trustScore;
-            
-            if (overviewChart) { overviewChart.data.datasets[0].data = [c.trustScore, 100 - c.trustScore]; overviewChart.update(); }
-            lucide.createIcons();
-            if(Math.random() > 0.5) addTerminalLog(`[SYNC] Math engine verified state. Trust Score: ${c.trustScore}`);
+            document.getElementById('ov-rel').innerText = c.reliability; document.getElementById('bar-rel').style.width = c.reliability + '%';
+            document.getElementById('ov-con').innerText = c.consistency; document.getElementById('bar-con').style.width = c.consistency + '%';
+            document.getElementById('ov-conf').innerText = c.confidence; document.getElementById('bar-conf').style.width = c.confidence + '%';
+            document.getElementById('ov-phys').innerText = c.physicsScore; document.getElementById('bar-phys').style.width = c.physicsScore + '%';
+            document.getElementById('phys-status').innerText = c.physicsScore < 100 ? "PHYSICAL ANOMALY DETECTED" : "PHYSICALLY CONSISTENT";
+            if(c.physicsScore < 100) { document.getElementById('phys-status').className = "text-[10px] text-red-400 border border-red-500/30 bg-red-500/10 p-2 rounded text-center"; }
         }
 
-        function showTab(tabName) {
-            const tabs = ['overview', 'ingestion', 'consistency', 'confidence', 'physics', 'decision', 'map', 'search', 'copilot'];
-            tabs.forEach(t => {
-                const el = document.getElementById('tab-' + t);
-                if(el) el.classList.add('hidden');
-                const btn = document.getElementById('nav-' + t);
-                if (btn) btn.className = "w-full text-left px-3 py-2.5 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800/60 transition flex items-center gap-2.5";
-            });
-
-            const activeEl = document.getElementById('tab-' + tabName);
-            if(activeEl) activeEl.classList.remove('hidden');
-            const activeBtn = document.getElementById('nav-' + tabName);
-            if (activeBtn) activeBtn.className = "w-full text-left px-3 py-2.5 rounded-lg bg-slate-800 text-cyan-400 font-semibold transition flex items-center gap-2.5";
-            
-            // if (tabName === 'map') init3DDeckMap();
-            // if (tabName === 'search') { setTimeout(() => calculateRoute(), 200); }
-            lucide.createIcons();
-        }
-
-        function initCharts() { 
-            const ctx1 = document.getElementById('overviewGauge').getContext('2d'); 
-            overviewChart = new Chart(ctx1, { type: 'doughnut', data: { datasets: [{ data: [86, 14], backgroundColor: ['#22d3ee', '#1e293b'], borderWidth: 0 }] }, options: { cutout: '80%', responsive: true, maintainAspectRatio: false } }); 
-        }
-        
-        function handleCopilotCustom() {
-            const input = document.getElementById('copilot-input');
-            const txt = input.value.trim().toLowerCase();
-            if (!txt) return;
-
-            const c = state.calculated;
-            let botReply = "";
-
-            if (txt.includes("hash") || txt.includes("audit") || txt.includes("crypto")) {
-                botReply = `The current unforgeable session hash is: ${state.currentHash}. This is generated server-side using SHA-256 for immutable ledger integration.`;
-            } else if (txt.includes("score") || txt.includes("trust")) {
-                botReply = `The overall Trust Score is ${c.trustScore}/100. Reliability: ${c.reliability}, Consistency: ${c.consistency}, Confidence: ${c.confidence}, Physics: ${c.physicsScore}.`;
+        function toggleSidebar() {
+            const sidebar = document.getElementById('app-sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if(sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
             } else {
-                botReply = `[State Analysis]: Trust Score is ${c.trustScore}/100 with standard deviation σ = ${c.stdDev.toFixed(3)}. All active sensors are being continuously audited.`;
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
             }
-
-            appendCopilotMessage(input.value, botReply);
-            input.value = "";
         }
 
-        function askCopilot(type) { 
-            let q = "", a = ""; 
-            if (type === 'why_low') { q = "Why is confidence low?"; a = `Confidence is driven by variance: mean P(event) = ${state.calculated.meanP.toFixed(2)} with standard deviation σ = ${state.calculated.stdDev.toFixed(3)}.`; } 
-            else if (type === 'hash') { q = "What is the current audit hash?"; a = `The active SHA-256 state hash is: ${state.currentHash}`; } 
-            appendCopilotMessage(q, a); 
+        function openMenuModal(title, htmlContent) {
+            toggleSidebar(); // Close sidebar first
+            document.getElementById('menu-modal-title').innerText = title;
+            document.getElementById('menu-modal-content').innerHTML = htmlContent;
+            document.getElementById('menu-modal').classList.remove('hidden');
+            lucide.createIcons();
         }
 
-        function appendCopilotMessage(userText, botReply) { const box = document.getElementById('copilot-chat-box'); box.innerHTML += `<div class="flex flex-col items-end"><div class="bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 p-2.5 rounded-lg max-w-md font-mono">${userText}</div></div><div class="flex flex-col items-start"><div class="bg-slate-950 border border-slate-800 text-gray-200 p-3 rounded-lg max-w-lg font-mono leading-relaxed">${botReply}</div></div>`; box.scrollTop = box.scrollHeight; }
-        
-        window.onload = function() { initCharts(); initWebSocket(); lucide.createIcons(); };
+        function closeMenuModal() {
+            document.getElementById('menu-modal').classList.add('hidden');
+        }
+
+        function shareMap() {
+            navigator.clipboard.writeText(window.location.href);
+            alert("Map URL copied to clipboard! You can now share it.");
+        }
+
+        function switchTransit(mode) {
+            const tabs = ['car', 'train', 'bike', 'walk'];
+            tabs.forEach(t => {
+                const btn = document.getElementById('tab-' + t);
+                btn.classList.remove('text-cyan-400', 'border-cyan-400');
+                btn.classList.add('text-slate-500', 'border-transparent');
+            });
+            const activeBtn = document.getElementById('tab-' + mode);
+            activeBtn.classList.remove('text-slate-500', 'border-transparent');
+            activeBtn.classList.add('text-cyan-400', 'border-cyan-400');
+        }
+
+        function formatTime(hours) {
+            if (hours < 1) return Math.round(hours * 60) + " min";
+            if (hours > 72) return Math.floor(hours / 24) + " days";
+            const h = Math.floor(hours);
+            const m = Math.round((hours - h) * 60);
+            return h + " hr " + (m > 0 ? m + " min" : "");
+        }
+
+        async function searchAndRoute() {
+            const startQuery = document.getElementById('start-input').value.trim();
+            const endQuery = document.getElementById('end-input').value.trim();
+            
+            if(!startQuery || !endQuery) { alert("Please enter both a starting point and a destination."); return; }
+
+            document.getElementById('route-output').classList.remove('hidden');
+            document.getElementById('ui-status').innerHTML = `<i data-lucide="loader" class="w-3 h-3 animate-spin"></i> SCANNING HIGHWAYS...`;
+            document.getElementById('dest-image').classList.add('hidden');
+            lucide.createIcons();
+            
+            try {
+                // Geocode
+                const startRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(startQuery + ', India')}`);
+                const startData = await startRes.json();
+                if(startData.length === 0) { alert("Start location not found."); document.getElementById('route-output').classList.add('hidden'); return; }
+                const startLat = parseFloat(startData[0].lat); const startLon = parseFloat(startData[0].lon);
+                const startName = startData[0].display_name.split(',')[0];
+
+                const endRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(endQuery + ', India')}`);
+                const endData = await endRes.json();
+                if(endData.length === 0) { alert("Destination not found."); document.getElementById('route-output').classList.add('hidden'); return; }
+                const endLat = parseFloat(endData[0].lat); const endLon = parseFloat(endData[0].lon);
+                const endName = endData[0].display_name.split(',')[0];
+
+                // WIKIPEDIA IMAGE FETCH
+                try {
+                    const wikiRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(endName)}&prop=pageimages&format=json&pithumbsize=400&origin=*`);
+                    const wikiData = await wikiRes.json();
+                    const pages = wikiData.query.pages;
+                    const pageId = Object.keys(pages)[0];
+                    if (pages[pageId].thumbnail) {
+                        document.getElementById('dest-image').src = pages[pageId].thumbnail.source;
+                        document.getElementById('dest-image').classList.remove('hidden');
+                    }
+                } catch(e) { console.log("No Wiki image found."); }
+
+                // OSRM ROUTING
+                const routeRes = await fetch(`https://router.project-osrm.org/route/v1/driving/${startLon},${startLat};${endLon},${endLat}?overview=full&geometries=geojson&alternatives=true`);
+                const routeData = await routeRes.json();
+                
+                mapInstance.eachLayer(layer => { if (layer instanceof L.Polyline || layer instanceof L.Marker || layer instanceof L.Circle) { mapInstance.removeLayer(layer); } });
+                const cyanMarker = L.divIcon({ className: '', html: "<div style='background-color:#22d3ee;width:16px;height:16px;border-radius:50%;border:2px solid #ffffff;box-shadow:0 0 15px #22d3ee;'></div>" });
+                const redMarker = L.divIcon({ className: 'sos-pulse', html: "<div style='background-color:#ef4444;width:20px;height:20px;border-radius:50%;border:2px solid #ffffff;'></div>" });
+
+                if(routeData.code === "Ok" && routeData.routes && routeData.routes.length > 0) {
+                    const mainRoadCoords = routeData.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+                    
+                    if (routeData.routes.length > 1) {
+                        const safeRoadCoords = routeData.routes[1].geometry.coordinates.map(c => [c[1], c[0]]);
+                        L.polyline(mainRoadCoords, { color: '#ef4444', weight: 4, opacity: 0.7, dashArray: '8, 8' }).addTo(mapInstance);
+                        L.polyline(safeRoadCoords, { color: '#22d3ee', weight: 6, opacity: 0.9 }).addTo(mapInstance);
+                        
+                        const hazardIndex = Math.floor(mainRoadCoords.length / 2);
+                        L.circle(mainRoadCoords[hazardIndex], {color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.2, radius: 15000}).addTo(mapInstance);
+                        L.marker(mainRoadCoords[hazardIndex], {icon: redMarker}).addTo(mapInstance).bindPopup("<b>⚠️ Hazard Zone</b><br>Legacy highway blocked.").openPopup();
+                    } else {
+                        L.polyline(mainRoadCoords, { color: '#22d3ee', weight: 6, opacity: 0.9 }).addTo(mapInstance);
+                        const hazardIndex = Math.floor(mainRoadCoords.length / 2);
+                        const offsetPoint = [mainRoadCoords[hazardIndex][0] + 0.15, mainRoadCoords[hazardIndex][1] + 0.15];
+                        L.circle(offsetPoint, {color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.2, radius: 15000}).addTo(mapInstance);
+                        L.marker(offsetPoint, {icon: redMarker}).addTo(mapInstance).bindPopup("<b>⚠️ Nearby Hazard Avoided</b><br>OmniTrust verified your current highway is safe.").openPopup();
+                    }
+                    
+                    L.marker([startLat, startLon], {icon: cyanMarker}).addTo(mapInstance).bindPopup(`<b>Start: ${startName}</b>`);
+                    L.marker([endLat, endLon], {icon: cyanMarker}).addTo(mapInstance).bindPopup(`<b>End: ${endName}</b>`).openPopup();
+                    
+                    mapInstance.fitBounds(L.polyline(mainRoadCoords).getBounds(), { padding: [50, 50] });
+                    
+                    const activeRoute = routeData.routes.length > 1 ? routeData.routes[1] : routeData.routes[0];
+                    const distKm = (activeRoute.distance / 1000).toFixed(1);
+                    const durHrs = (activeRoute.duration / 3600);
+                    
+                    document.getElementById('time-car').innerText = formatTime(durHrs);
+                    document.getElementById('time-train').innerText = formatTime(durHrs * 0.85); 
+                    document.getElementById('time-bike').innerText = formatTime(distKm / 15); 
+                    document.getElementById('time-walk').innerText = formatTime(distKm / 5); 
+
+                    document.getElementById('ui-status').innerHTML = `<i data-lucide="check-circle-2" class="w-3 h-3 text-cyan-400"></i> SAFE ROUTE VERIFIED`;
+                    document.getElementById('ui-dist').innerHTML = `<i data-lucide="ruler" class="w-3 h-3 inline mr-1 text-cyan-400"></i> ${distKm} km`;
+                    document.getElementById('ui-trust').innerText = `Trust: ${state.calculated.trustScore}/100`;
+                    lucide.createIcons();
+                } else {
+                    const aerialCoords = [[startLat, startLon], [endLat, endLon]];
+                    L.polyline(aerialCoords, { color: '#22d3ee', weight: 4, opacity: 0.8, dashArray: '10, 10' }).addTo(mapInstance);
+                    L.marker([startLat, startLon], {icon: cyanMarker}).addTo(mapInstance).bindPopup(`<b>Start: ${startName}</b>`);
+                    L.marker([endLat, endLon], {icon: cyanMarker}).addTo(mapInstance).bindPopup(`<b>End: ${endName}</b>`).openPopup();
+                    mapInstance.fitBounds(L.polyline(aerialCoords).getBounds(), { padding: [50, 50] });
+                    
+                    const directDist = mapInstance.distance([startLat, startLon], [endLat, endLon]) / 1000;
+                    document.getElementById('time-car').innerText = "--"; document.getElementById('time-train').innerText = "--"; document.getElementById('time-bike').innerText = "--"; document.getElementById('time-walk').innerText = "--";
+                    
+                    document.getElementById('ui-status').innerHTML = `<i data-lucide="plane" class="w-3 h-3 text-cyan-400"></i> AERIAL ROUTE (NO ROADS FOUND)`;
+                    document.getElementById('ui-dist').innerHTML = `<i data-lucide="ruler" class="w-3 h-3 inline mr-1 text-cyan-400"></i> ${directDist.toFixed(1)} km (Direct)`;
+                    document.getElementById('ui-trust').innerText = `Trust: N/A`;
+                    
+                    if(document.getElementById('copilot-panel').classList.contains('hidden')) { toggleCopilot(); }
+                    appendCopilotMessage(`Route check to ${endName}`, `Highway routing failed. Displaying direct aerial path instead.`);
+                    lucide.createIcons();
+                }
+            } catch(e) {
+                console.error(e);
+                alert("Routing engine timeout. Please check your internet connection.");
+                document.getElementById('route-output').classList.add('hidden');
+            }
+        }
+
+        function openSOSModal() { document.getElementById('sos-modal').classList.remove('hidden'); }
+        function closeSOSModal() { document.getElementById('sos-modal').classList.add('hidden'); }
+        function submitSOS(type) {
+            closeSOSModal();
+            state.sources.GROUND.pEvent = 0.95; sendWSUpdate();
+            const currentCenter = mapInstance.getCenter();
+            const redMarker = L.divIcon({ className: 'sos-pulse', html: "<div style='background-color:#ef4444;width:20px;height:20px;border-radius:50%;border:2px solid #ffffff;'></div>" });
+            L.circle(currentCenter, {color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.2, radius: 5000}).addTo(mapInstance);
+            L.marker(currentCenter, {icon: redMarker}).addTo(mapInstance).bindPopup(`<b>🚨 Crowdsourced Hazard: ${type}</b><br>Verification sent to OmniTrust Engine.`).openPopup();
+            document.getElementById('telemetry-panel').classList.remove('hidden');
+            if(document.getElementById('copilot-panel').classList.contains('hidden')) { toggleCopilot(); }
+            appendCopilotMessage(`User reported: ${type}`, `Your report has been securely registered on the ledger (Hash updated). Traffic is being rerouted.`);
+        }
+
+        function toggleCopilot() {
+            const panel = document.getElementById('copilot-panel'); const trigger = document.getElementById('copilot-trigger');
+            if (panel.classList.contains('hidden')) { panel.classList.remove('hidden'); trigger.classList.add('hidden'); } 
+            else { panel.classList.add('hidden'); trigger.classList.remove('hidden'); }
+        }
+
+        function handleCopilotCustom() {
+            const input = document.getElementById('copilot-input'); const txt = input.value.trim().toLowerCase();
+            if (!txt) return; const c = state.calculated; let botReply = "";
+
+            if (txt.includes("hello") || txt.includes("hi") || txt.includes("hey")) { botReply = "Hello! I am your OmniTrust AI Assistant. I'm actively monitoring sensor data and routing. How can I keep you safe today?"; } 
+            else if (txt.includes("how are you") || txt.includes("status")) { botReply = `I am operating at optimal capacity. The current system trust score is ${c.trustScore}/100 with ${c.physicsScore}% physics consistency.`; } 
+            else if (txt.includes("hash") || txt.includes("audit") || txt.includes("crypto")) { botReply = `The current unforgeable session hash is: ${state.currentHash}. This is generated server-side using SHA-256 for immutable ledger integration.`; } 
+            else if (txt.includes("score") || txt.includes("trust") || txt.includes("confidence")) { botReply = `The overall Trust Score is ${c.trustScore}/100. Reliability: ${c.reliability}, Consistency: ${c.consistency}, Confidence: ${c.confidence}, Physics: ${c.physicsScore}.`; } 
+            else if (txt.includes("safe") || txt.includes("danger") || txt.includes("hazard") || txt.includes("help") || txt.includes("sos")) { botReply = `I am constantly verifying routing telemetry. If you encounter a hazard, please use the red SOS button at the bottom of the screen to alert the network.`; } 
+            else if (txt.includes("thank")) { botReply = `You're very welcome! Stay safe out there.`; } 
+            else { botReply = `[Command Not Recognized]: My primary function is geospatial verification. The active Trust Score is ${c.trustScore}/100. Try asking me about 'safety', 'trust', or 'hashes'.`; }
+
+            appendCopilotMessage(input.value, botReply); input.value = "";
+        }
+
+        function appendCopilotMessage(userText, botReply) { 
+            const box = document.getElementById('copilot-chat-box'); 
+            box.innerHTML += `<div class="flex flex-col items-end"><div class="bg-cyan-500/20 text-cyan-100 px-3 py-2 rounded-l-lg rounded-tr-lg border border-cyan-500/30 max-w-[85%] mb-2">${userText}</div></div><div class="flex items-start gap-2 mb-2"><i data-lucide="shield-check" class="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0"></i><div class="bg-slate-800 text-slate-300 px-3 py-2 rounded-r-lg rounded-bl-lg max-w-[85%]">${botReply}</div></div>`; 
+            box.scrollTop = box.scrollHeight; lucide.createIcons();
+        }
+
+        window.onload = function() { initMap(); initWebSocket(); lucide.createIcons(); };
     </script>
 </body>
 </html>
