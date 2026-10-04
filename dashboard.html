@@ -35,6 +35,20 @@
         .layer-menu:hover .layer-item:nth-child(2) { transition-delay: 0.1s; }
         .layer-menu:hover .layer-item:nth-child(3) { transition-delay: 0.15s; }
         .layer-menu:hover .layer-item:nth-child(4) { transition-delay: 0.2s; }
+
+        /* --- NEW: DYNAMIC DARK MODE FILTERS --- */
+        /* Applies inversion only when #main-map has the 'dark-mode-tiles' class */
+        #main-map.dark-mode-tiles .leaflet-tile-pane {
+            filter: invert(100%) hue-rotate(180deg) brightness(90%) contrast(95%);
+        }
+        /* Protects UI, routing lines, and markers from getting inverted */
+        #main-map.dark-mode-tiles .leaflet-overlay-pane,
+        #main-map.dark-mode-tiles .leaflet-marker-pane,
+        #main-map.dark-mode-tiles .leaflet-shadow-pane,
+        #main-map.dark-mode-tiles .leaflet-popup-pane,
+        #main-map.dark-mode-tiles .leaflet-control {
+            filter: none !important;
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-200 selection:bg-cyan-500 selection:text-black">
@@ -252,18 +266,21 @@
         let activeLayerControl = null;
         const defaultStartLat = 12.2958; const defaultStartLon = 76.6394;
 
-        // NEW: CUSTOM MAP LAYER LOGIC
+        // NEW: CUSTOM MAP LAYER LOGIC WITH DYNAMIC DARK CSS
         function initMap() {
             // Define all map styles
             mapLayers = {
-                'dark': L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 }),
-                'street': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 }),
+                // FIXED: Replaced CARTO with standard OSM tile. 
+                // We will invert this dynamically with the 'dark-mode-tiles' class in CSS.
+                'dark': L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 19 }),
+                'street': L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 }),
                 'satellite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri', maxZoom: 19 }),
                 'terrain': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri', maxZoom: 19 })
             };
 
             // Initialize map with Dark mode active
             mapInstance = L.map('main-map', { zoomControl: false, layers: [mapLayers['dark']] }).setView([defaultStartLat, defaultStartLon], 10);
+            document.getElementById('main-map').classList.add('dark-mode-tiles'); // Enables the CSS filter
             L.control.zoom({ position: 'bottomright' }).addTo(mapInstance);
             activeLayerControl = mapLayers['dark'];
         }
@@ -273,6 +290,13 @@
             mapInstance.removeLayer(activeLayerControl);
             activeLayerControl = mapLayers[layerId];
             activeLayerControl.addTo(mapInstance);
+            
+            // Toggle the CSS filter based on the selected layer
+            if (layerId === 'dark') {
+                document.getElementById('main-map').classList.add('dark-mode-tiles');
+            } else {
+                document.getElementById('main-map').classList.remove('dark-mode-tiles');
+            }
             
             // Update UI Button Highlights
             ['dark', 'street', 'satellite', 'terrain'].forEach(id => {
