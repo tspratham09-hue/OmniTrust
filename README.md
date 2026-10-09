@@ -21,50 +21,6 @@ Furthermore, legacy crowdsourced hazard systems rely on unverified, anonymous us
 
 ---
 
-## 🏛️ System Architecture
-
-
-                                  [ User Input / GPS ]
-                                            │
-                                            ▼
-                                 [ OpenStreetMap / OSRM ]
-                                            │
-                                  (Initial Route Vector)
-                                            │
-┌───────────────────────────────────────────┴───────────────────────────────────────────┐
-│                           OmniTrust Verification Core                                 │
-│                                                                                       │
-│   ┌─────────────────────┐   ┌───────────────────────┐   ┌─────────────────────────┐   │
-│   │   RainViewer API    │   │  Crowdsourced SOS     │   │   Satellite Feeds       │   │
-│   │ (Live Doppler Radar)│   │  (Ground Telemetry)   │   │   (SAR & Optical Data)  │   │
-│   └──────────┬──────────┘   └───────────┬───────────┘   └────────────┬────────────┘   │
-│              │                          │                            │                │
-│              └──────────────────┐       │       ┌────────────────────┘                │
-│                                 ▼       ▼       ▼                                     │
-│                     [ geo_reliability_framework.py ]                                  │
-│                      - Monte Carlo Ensemble Variance                                  │
-│                      - Pairwise Conflict Matrices                                     │
-│                      - Multi-Sensor Consistency Analysis                              │
-│                                         │                                             │
-│                                         ▼                                             │
-│                              [ Dynamic Trust Score ]                                  │
-│                                         │                                             │
-│                                         ▼                                             │
-│                                 [ engine.py ]                                         │
-│                      - SHA-256 Cryptographic Audit Ledger                             │
-│                      - Physical Anomaly Detection & Geofencing                        │
-└─────────────────────────────────────────┬─────────────────────────────────────────────┘
-                                          │
-                                          ▼
-                      [ WebSocket Event Stream (main.py / api.py) ]
-                                          │
-                   ┌──────────────────────┴──────────────────────┐
-                   ▼                                             ▼
-        [ Interactive Dashboard ]                     [ Browser Voice AI Copilot ]
-        - Dynamic Dark / Street / Satellite           - Web Speech API Synthesis
-        - Detour Polyline Overlays                    - Eyes-on-the-Road Audio Prompts
-        - Live Crypto Ledger Sync                     - Real-Time Hazard Warnings
-
 ## 🚀 Key Features
 
 ### 1. 🧮 Mathematical Verification Engine
@@ -107,10 +63,56 @@ Furthermore, legacy crowdsourced hazard systems rely on unverified, anonymous us
 | **Cryptography** | **Python `hashlib` (SHA-256)** | Tamper-evident ledger hashing for hazard verification |
 | **Voice Interface** | **Web Speech API** | Browser-native conversational agent and audio alert synthesis |
 
+
+## 🏛️ System Architecture
+```text
+
+                                  [ User Input / GPS ]
+                                            │
+                                            ▼
+                                 [ OpenStreetMap / OSRM ]
+                                            │
+                                  (Initial Route Vector)
+                                            │
+┌───────────────────────────────────────────┴───────────────────────────────────────────┐
+│                           OmniTrust Verification Core                                 │
+│                                                                                       │
+│   ┌─────────────────────┐   ┌───────────────────────┐   ┌─────────────────────────┐   │
+│   │   RainViewer API    │   │  Crowdsourced SOS     │   │   Satellite Feeds       │   │
+│   │ (Live Doppler Radar)│   │  (Ground Telemetry)   │   │   (SAR & Optical Data)  │   │
+│   └──────────┬──────────┘   └───────────┬───────────┘   └────────────┬────────────┘   │
+│              │                          │                            │                │
+│              └──────────────────┐       │       ┌────────────────────┘                │
+│                                 ▼       ▼       ▼                                     │
+│                     [ geo_reliability_framework.py ]                                  │
+│                      - Monte Carlo Ensemble Variance                                  │
+│                      - Pairwise Conflict Matrices                                     │
+│                      - Multi-Sensor Consistency Analysis                              │
+│                                         │                                             │
+│                                         ▼                                             │
+│                              [ Dynamic Trust Score ]                                  │
+│                                         │                                             │
+│                                         ▼                                             │
+│                                 [ engine.py ]                                         │
+│                      - SHA-256 Cryptographic Audit Ledger                             │
+│                      - Physical Anomaly Detection & Geofencing                        │
+└─────────────────────────────────────────┬─────────────────────────────────────────────┘
+                                          │
+                                          ▼
+                      [ WebSocket Event Stream (main.py / api.py) ]
+                                          │
+                   ┌──────────────────────┴──────────────────────┐
+                   ▼                                             ▼
+        [ Interactive Dashboard ]                     [ Browser Voice AI Copilot ]
+        - Dynamic Dark / Street / Satellite           - Web Speech API Synthesis
+        - Detour Polyline Overlays                    - Eyes-on-the-Road Audio Prompts
+        - Live Crypto Ledger Sync                     - Real-Time Hazard Warnings
+
+
 ---
 
 ## 📂 Repository Structure
-
+```text
 
 OmniTrust/
 ├── api.py                      # FastAPI endpoints and route definitions
