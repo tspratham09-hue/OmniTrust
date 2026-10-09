@@ -23,7 +23,7 @@ Furthermore, legacy crowdsourced hazard systems rely on unverified, anonymous us
 
 ## 🏛️ System Architecture
 
-```text
+
                                   [ User Input / GPS ]
                                             │
                                             ▼
@@ -111,7 +111,7 @@ Furthermore, legacy crowdsourced hazard systems rely on unverified, anonymous us
 
 ## 📂 Repository Structure
 
-```text
+
 OmniTrust/
 ├── api.py                      # FastAPI endpoints and route definitions
 ├── app.py                      # Streamlit application host and entrypoint
