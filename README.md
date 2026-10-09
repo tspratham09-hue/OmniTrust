@@ -65,7 +65,7 @@ Furthermore, legacy crowdsourced hazard systems rely on unverified, anonymous us
         - Detour Polyline Overlays                    - Eyes-on-the-Road Audio Prompts
         - Live Crypto Ledger Sync                     - Real-Time Hazard Warnings
 
-🚀 Key Features
+## 🚀 Key Features
 
 ### 1. 🧮 Mathematical Verification Engine
 *   **Ensemble Telemetry Processing:** Continually analyzes data inputs from Optical, Synthetic Aperture Radar (SAR), Weather, and Ground sensor feeds.
@@ -91,6 +91,8 @@ Furthermore, legacy crowdsourced hazard systems rely on unverified, anonymous us
 *   **Hands-Free Audio Alerts:** Native Web Speech API integration that proactively vocalizes safety updates, route adjustments, and dropping Trust Scores.
 *   **Conversational Assistant:** In-app AI agent allowing drivers to query active cryptographic hash records, current system reliability metrics, and safe transit conditions.
 
+---
+
 ## 🛠️ Technology Stack
 
 | Domain | Technology / Library | Role in OmniTrust |
@@ -105,8 +107,11 @@ Furthermore, legacy crowdsourced hazard systems rely on unverified, anonymous us
 | **Cryptography** | **Python `hashlib` (SHA-256)** | Tamper-evident ledger hashing for hazard verification |
 | **Voice Interface** | **Web Speech API** | Browser-native conversational agent and audio alert synthesis |
 
-📂 Repository Structure
+---
 
+## 📂 Repository Structure
+
+```text
 OmniTrust/
 ├── api.py                      # FastAPI endpoints and route definitions
 ├── app.py                      # Streamlit application host and entrypoint
