@@ -65,7 +65,7 @@ Furthermore, legacy crowdsourced hazard systems rely on unverified, anonymous us
         - Detour Polyline Overlays                    - Eyes-on-the-Road Audio Prompts
         - Live Crypto Ledger Sync                     - Real-Time Hazard Warnings
 
-## 🚀 Key Features
+🚀 Key Features
 
 ### 1. 🧮 Mathematical Verification Engine
 *   **Ensemble Telemetry Processing:** Continually analyzes data inputs from Optical, Synthetic Aperture Radar (SAR), Weather, and Ground sensor feeds.
