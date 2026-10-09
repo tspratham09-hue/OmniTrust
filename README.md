@@ -1,29 +1,66 @@
 # OmniTrust 🛡️
-**Enterprise Verification Layer & Public Safety Navigator for Geospatial AI**
 
-OmniTrust is an advanced geospatial application that shifts the paradigm of navigation from "Fastest Route" to **"Safest Verified Route."** It utilizes a custom Python mathematical engine to actively verify the reliability, consistency, and physics of incoming spatial data feeds, preventing users from being routed into active disaster zones.
+### *Enterprise Geospatial Verification Layer & Public Safety Navigator*
 
-## 🚀 Key Features
+[![Live Demo](https://img.shields.io/badge/Demo-Live%20Streamlit%20App-00D26A?style=for-the-badge&logo=streamlit)](https://omnitrust-yvu8hyvpa7b6mq7nsm5f7f.streamlit.app)
+[![Video Demo](https://img.shields.io/badge/Video-Watch%20Walkthrough-FF0000?style=for-the-badge&logo=google-drive)](https://drive.google.com/file/d/18Hjpr2dLB5XN0rAJNy0ekrXDzL18KxwV/view?usp=sharing)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue?style=for-the-badge&logo=python)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Leaflet](https://img.shields.io/badge/Leaflet-1.9.4-199900?style=for-the-badge&logo=leaflet)](https://leafletjs.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-*   **Real-Time Math Engine:** A custom FastAPI backend computes Monte Carlo ensemble variance, pairwise conflict matrices, and standard deviation spread ($\sigma$) across multiple simulated sensor feeds (Optical, SAR, Weather, Ground).
-*   **Dynamic Highway Routing:** Integrates with the OpenStreetMap (Nominatim) and OSRM APIs to generate live, curve-accurate highway routes across India. 
-*   **Smart Hazard Avoidance:** Automatically detects hazardous regions and draws verified safe alternative routes, complete with interactive UI hazard pins.
-*   **Multi-Modal UI:** Features a custom Map Layer widget (Dark, Street, Satellite, Terrain), live Wikipedia destination image fetching, and multi-vehicle transit time calculations.
-*   **Conversational AI Copilot:** A built-in chat widget that can query the Python engine's live telemetry state and answer user safety questions.
-*   **Cryptographic Ledger Integration:** Simulates enterprise auditing by generating a live SHA-256 hash of the routing session state.
+---
 
-## 🛠️ Tech Stack
+## 📌 Executive Overview
 
-*   **Frontend:** HTML5, Tailwind CSS, JavaScript
-*   **Mapping Libraries:** Leaflet.js, MapLibre GL
-*   **Backend:** Python 3, FastAPI, Uvicorn, WebSockets
-*   **Data Processing:** Numpy, Pandas
-*   **Deployment Wrapper:** Streamlit
+Traditional geospatial navigation platforms (such as Google Maps, Apple Maps, and Waze) optimize deterministically for **transit speed and shortest distance**. During localized environmental emergencies—such as flash floods, cloudbursts, mudslides, or structural road damage—this logic actively routes unsuspecting motorists directly into hazardous corridors simply because compromised roads exhibit low vehicle density and appear "traffic-free."
 
-## 💻 How to Run Locally
+Furthermore, legacy crowdsourced hazard systems rely on unverified, anonymous user reports, leaving them susceptible to malicious data spoofing, false alarms, and high noise-to-signal ratios.
 
-Because OmniTrust relies on a real-time mathematical engine, you must run both the backend and frontend servers simultaneously.
+**OmniTrust** redefines geospatial mobility from **"Fastest Route"** to **"Safest Verified Route."** Acting as an autonomous **Agentic Verification Engine**, OmniTrust ingests live meteorological telemetry, validates crowdsourced alerts through a **SHA-256 cryptographic audit ledger**, calculates a dynamic mathematical **Trust Score**, and autonomously generates safe geometric detours before commuters arrive at danger zones.
 
-1. Clone the repository and install the requirements:
-   ```bash
-   pip install -r requirements.txt
+---
+
+## 🏛️ System Architecture
+
+```text
+                                  [ User Input / GPS ]
+                                            │
+                                            ▼
+                                 [ OpenStreetMap / OSRM ]
+                                            │
+                                  (Initial Route Vector)
+                                            │
+┌───────────────────────────────────────────┴───────────────────────────────────────────┐
+│                           OmniTrust Verification Core                                 │
+│                                                                                       │
+│   ┌─────────────────────┐   ┌───────────────────────┐   ┌─────────────────────────┐   │
+│   │   RainViewer API    │   │  Crowdsourced SOS     │   │   Satellite Feeds       │   │
+│   │ (Live Doppler Radar)│   │  (Ground Telemetry)   │   │   (SAR & Optical Data)  │   │
+│   └──────────┬──────────┘   └───────────┬───────────┘   └────────────┬────────────┘   │
+│              │                          │                            │                │
+│              └──────────────────┐       │       ┌────────────────────┘                │
+│                                 ▼       ▼       ▼                                     │
+│                     [ geo_reliability_framework.py ]                                  │
+│                      - Monte Carlo Ensemble Variance                                  │
+│                      - Pairwise Conflict Matrices                                     │
+│                      - Multi-Sensor Consistency Analysis                              │
+│                                         │                                             │
+│                                         ▼                                             │
+│                              [ Dynamic Trust Score ]                                  │
+│                                         │                                             │
+│                                         ▼                                             │
+│                                 [ engine.py ]                                         │
+│                      - SHA-256 Cryptographic Audit Ledger                             │
+│                      - Physical Anomaly Detection & Geofencing                        │
+└─────────────────────────────────────────┬─────────────────────────────────────────────┘
+                                          │
+                                          ▼
+                      [ WebSocket Event Stream (main.py / api.py) ]
+                                          │
+                   ┌──────────────────────┴──────────────────────┐
+                   ▼                                             ▼
+        [ Interactive Dashboard ]                     [ Browser Voice AI Copilot ]
+        - Dynamic Dark / Street / Satellite           - Web Speech API Synthesis
+        - Detour Polyline Overlays                    - Eyes-on-the-Road Audio Prompts
+        - Live Crypto Ledger Sync                     - Real-Time Hazard Warnings
