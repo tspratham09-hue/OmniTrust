@@ -64,3 +64,51 @@ Furthermore, legacy crowdsourced hazard systems rely on unverified, anonymous us
         - Dynamic Dark / Street / Satellite           - Web Speech API Synthesis
         - Detour Polyline Overlays                    - Eyes-on-the-Road Audio Prompts
         - Live Crypto Ledger Sync                     - Real-Time Hazard Warnings
+
+🚀 Key Features
+1. 🧮 Mathematical Verification Engine
+Ensemble Telemetry Processing: Continually analyzes data inputs from Optical, Synthetic Aperture Radar (SAR), Weather, and Ground sensor feeds.
+
+Dynamic Trust Scoring: Computes a composite Trust Metric (0-100) derived from Reliability, Consistency, Confidence, and Physical Plausibility.
+
+Hazard Quarantine: Automatically flags routes whose intersecting hazard probabilities exceed strict safety thresholds.
+
+2. 🔐 Cryptographic Audit Ledger
+Anti-Spoofing Protocol: Every crowdsourced hazard report (Flood, Landslide, Crash, Fire) is hashed using SHA-256 alongside UTC timestamps and coordinate metadata.
+
+Immutable Session State: Prevents coordinated GPS spoofing and traffic trolling by verifying reports against environmental consensus before allowing topological map alterations.
+
+3. 🗺️ Resilient Turn-by-Turn Routing & Detour Generation
+OSRM Integration: Computes curve-accurate highway routing geometries across regional road networks using the Open Source Routing Machine engine.
+
+Autonomous Hazard Geofencing: If a road segment is flagged hazardous, the engine geofences the node, renders legacy compromised highways as dashed alerts, and plots a verified alternate route in cyan.
+
+Aerial Fallback: Automatically calculates great-circle aerial interpolation vectors if ground road networks are severed.
+
+4. 🎨 Enterprise Multimodal User Interface
+Zero-API High-Performance Dark Mode: Custom dynamic CSS inversion filter over OpenStreetMap tile infrastructure, delivering sleek high-contrast aesthetics without third-party vendor lock-in or watermarks.
+
+Multi-Layer Tile Switcher: Instant toggling between Dark Canvas, Street View, Esri World Imagery (Satellite), and Topographic Terrain.
+
+Dynamic Transit Computation: Multi-modal travel time estimation across Driving, Rail, Cycling, and Pedestrian profiles.
+
+Contextual Visuals: Automated geocoding and real-time Wikipedia image extraction for destination waypoints.
+
+5. 🎙️ Browser-Native AI Voice Copilot
+Hands-Free Audio Alerts: Native Web Speech API integration that proactively vocalizes safety updates, route adjustments, and dropping Trust Scores.
+
+Conversational Assistant: In-app AI agent allowing drivers to query active cryptographic hash records, current system reliability metrics, and safe transit conditions.
+
+🛠️ Technology StackDomainTechnology / LibraryRole in OmniTrustBackend FrameworkFastAPI / UvicornHigh-concurrency asynchronous API routing and executionStreamingWebSocketsSub-millisecond bidirectional telemetry streamingFrontend UIHTML5, Tailwind CSS, JavaScriptResponsive glassmorphism interface and interactive sidebarsMapping EngineLeaflet.jsClient-side map vector rendering, custom markers, and polylinesDeployment LayerStreamlit Community CloudMicroservices hosting and rapid MVP deliveryGeospatial APIsOSRM API & OSM NominatimTurn-by-turn routing geometries and reverse geocodingWeather TelemetryRainViewer APILive Doppler cloud and precipitation radar overlaysCryptographyPython hashlib (SHA-256)Tamper-evident ledger hashing for hazard verificationVoice InterfaceWeb Speech APIBrowser-native conversational agent and audio alert synthesis
+
+📂 Repository Structure
+OmniTrust/
+├── api.py                      # FastAPI endpoints and route definitions
+├── app.py                      # Streamlit application host and entrypoint
+├── dashboard.html              # Core Leaflet.js frontend UI, CSS filters & UI logic
+├── engine.py                   # Cryptographic ledger hashing & verification pipelines
+├── geo_reliability_framework.py # Mathematical Trust Score calculations & physics checks
+├── main.py                     # FastAPI WebSocket streaming server
+├── requirements.txt            # Python dependencies and library manifests
+├── logo                        # Visual brand assets
+└── README.md                   # System documentation
